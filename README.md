@@ -144,6 +144,4 @@ author :- Karan Nagpal
 
 *Note: Voice input requires HTTPS in production and microphone permissions*
 
-## 🚀 Deployment
 
-### Backend Deployment (Heroku)
