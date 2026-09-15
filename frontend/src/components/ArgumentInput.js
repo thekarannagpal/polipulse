@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { SpeechRecognitionService } from '../utils/speechRecognition';
 
-const ArgumentInput = ({ onSubmit }) => {
+const ArgumentInput = ({ onSubmit, debateActive }) => {
   const [argument, setArgument] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [speechService] = useState(new SpeechRecognitionService());
@@ -15,11 +15,18 @@ const ArgumentInput = ({ onSubmit }) => {
   }, [speechService]);
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (argument.trim()) {
       onSubmit(argument);
       setArgument('');
       setInterimText('');
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
     }
   };
 
@@ -60,59 +67,81 @@ const ArgumentInput = ({ onSubmit }) => {
   };
 
   return (
-    <div className="argument-input">
+    <div className="argument-input-card">
       <form onSubmit={handleSubmit}>
-        <div className="input-container">
+        <div className="input-container-box">
+          <div className="input-header-bar">
+            <span className="input-title">✍️ Craft Argument</span>
+            <span className="shortcut-hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to send</span>
+          </div>
+
           <textarea
             value={argument + (interimText ? ` ${interimText}` : '')}
             onChange={(e) => setArgument(e.target.value)}
-            placeholder="Present your argument with evidence and reasoning..."
-            rows="4"
+            onKeyDown={handleKeyDown}
+            placeholder="Structure your position clearly with reasoning, facts, and supporting data for highest AI evaluation..."
+            rows="3"
             maxLength={1000}
-            className={interimText ? 'with-interim' : ''}
+            className={`custom-textarea ${interimText ? 'with-interim' : ''}`}
           />
           
           {speechError && (
-            <div className="speech-error">
+            <div className="speech-error-banner">
               ⚠️ {speechError}
             </div>
           )}
           
-          <div className="input-controls">
-            <div className="voice-controls">
+          <div className="input-controls-row">
+            <div className="voice-controls-group">
               {isSupported ? (
                 <>
                   <button
                     type="button"
-                    className={`record-btn ${isRecording ? 'recording' : ''}`}
+                    className={`voice-record-btn ${isRecording ? 'recording' : ''}`}
                     onClick={isRecording ? stopRecording : startRecording}
                     disabled={!isSupported}
                   >
-                    🎤 {isRecording ? 'Stop Recording' : 'Voice Input'}
+                    {isRecording ? (
+                      <>
+                        <span className="recording-wave"></span>
+                        <span>Stop Voice</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🎤 Voice Input</span>
+                      </>
+                    )}
                   </button>
-                  <button
-                    type="button"
-                    onClick={clearText}
-                    className="clear-btn"
-                  >
-                    🗑️ Clear
-                  </button>
+                  
+                  {argument.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearText}
+                      className="clear-btn"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </>
               ) : (
-                <span className="no-support">🎤 Voice input not supported</span>
+                <span className="no-support">🎤 Voice recognition unavailable</span>
               )}
             </div>
             
-            <div className="text-controls">
-              <div className="character-count">
-                {argument.length}/1000
+            <div className="submit-controls-group">
+              <div className="char-counter">
+                <span className={argument.length > 900 ? 'near-limit' : ''}>
+                  {argument.length}
+                </span>/1000
               </div>
+
               <button 
                 type="submit" 
                 disabled={!argument.trim()}
-                className="submit-btn"
+                className="submit-argument-btn"
               >
-                Submit Argument
+                <span>Submit to Floor</span>
+                <span className="btn-arrow">→</span>
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-// server.js
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -38,7 +38,8 @@ io.on('connection', (socket) => {
         debateStatement: '',
         isActive: false,
         startTime: null,
-        timeLimit: 1800 // 30 minutes default
+        timeLimit: 1800, // 30 minutes default
+        apiKey: null
       });
     }
     
@@ -56,8 +57,19 @@ io.on('connection', (socket) => {
     socket.emit('debate-state', {
       statement: room.debateStatement,
       isActive: room.isActive,
-      arguments: room.debateArguments
+      arguments: room.debateArguments,
+      aiEngine: (room.apiKey || process.env.GEMINI_API_KEY) ? 'Gemini 2.5 AI Engine' : 'Local Natural NLP Engine'
     });
+  });
+
+  socket.on('set-gemini-key', ({ roomId, apiKey }) => {
+    const room = debateRooms.get(roomId);
+    if (room) {
+      room.apiKey = apiKey;
+      io.to(roomId).emit('ai-engine-updated', { 
+        engine: apiKey ? 'Gemini 2.5 AI Engine' : 'Local Natural NLP Engine' 
+      });
+    }
   });
 
   socket.on('start-debate', (debateData) => {
@@ -96,8 +108,13 @@ io.on('connection', (socket) => {
     
     if (room && room.isActive) {
       try {
-        // AI Analysis of the argument
-        const analysis = await argumentAnalyzer.analyzeArgument(argument);
+        // AI Analysis of the argument with debate statement context & Gemini Key if present
+        const analysis = await argumentAnalyzer.analyzeArgument(
+          argument, 
+          room.debateStatement, 
+          side, 
+          room.apiKey
+        );
         
         const argumentData = {
           id: Date.now(),
@@ -109,7 +126,15 @@ io.on('connection', (socket) => {
             strength: analysis.strength,
             evidence: analysis.evidence,
             tone: analysis.tone,
-            feedback: analysis.feedback
+            clarity: analysis.clarity,
+            relevance: analysis.relevance,
+            motionAlignment: analysis.motionAlignment,
+            sideMatch: analysis.sideMatch,
+            strengthLevel: analysis.strengthLevel,
+            evidenceDetected: analysis.evidenceDetected,
+            toneLabel: analysis.toneLabel,
+            feedback: analysis.feedback,
+            aiEngine: analysis.aiEngine
           }
         };
         
